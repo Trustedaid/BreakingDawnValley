@@ -10,51 +10,87 @@ public class EnemyScript : MonoBehaviour
     Animator enemyanimator;
     GameObject Target;
     [Header("GENERAL Settings")]
+
         float ShootRadiusValue=10; // detection radius of patrol
         float DetectionRadiusValue=15;
         Vector3 spawnpoint;
+        bool Suspicion = false;
+
     [Header("PATROL Settings")]
+    
 
         public GameObject[] PatrolPoint_1;
         public bool PatrolCheck;
-        bool ShootorNot=false;
-        bool Suspicion=false;
-        IEnumerator PatrolDo;
+       // bool ShootorNot=false;
+        
+        Coroutine PatrolDo;
     void Start()
     {
     navmesh = GetComponent<NavMeshAgent>();
     enemyanimator = GetComponent<Animator>();
     spawnpoint=transform.position;
+     
     }
 
-IEnumerator PatrolTechnical(){
+                IEnumerator PatrolTechnical()
+                {
+        enemyanimator.SetBool("walk", true);
+        int sumofpoint = PatrolPoint_1.Length-1; // element ve en başta verilen sayı tutmadığı için 1 çıkarmak gerekiyo 8 ve 7
+        int startingvalue = 0;
+        Debug.Log(sumofpoint);
+       
+        
+        while (true) // while(true && !PatrolCheck)
+        {
+        if(Vector3.Distance(transform.position, PatrolPoint_1[startingvalue].transform.position ) <= 1f)  
+          {
+                if(sumofpoint > startingvalue)
+                {
+                    ++startingvalue;
+                    navmesh.SetDestination(PatrolPoint_1[startingvalue].transform.position);   // listenin içindeki 1. hedefi kendine 1. hedef olarak belirliyo
 
-    int sumofpoint = PatrolPoint_1.Length;
-    int startingvalue = 0;
-while(true && !PatrolCheck)
-{
-    if(transform.position != PatrolPoint_1[startingvalue].transform.position)  
-    {
-    navmesh.SetDestination(Target.transform.position);   // listenin içindeki 1. hedefi kendine 1. hedef olarak belirliyo
-
-    }
+                }
+                else
+                {
+                    navmesh.stoppingDistance = 1;
+                    navmesh.SetDestination(spawnpoint);
+                    if (navmesh.remainingDistance <= 1)
+                    {
+                        enemyanimator.SetBool("walk", false);
+                        transform.rotation = Quaternion.Euler(0, 180, 0);
+                        PatrolCheck = false;
+                        StopCoroutine(PatrolDo);
+                    }
+                }
+            }       
     
-    else
-    {
-            startingvalue++;
+        else
+          {
 
-    }
-    yield return null;
+                if (sumofpoint > startingvalue)
+                {
+                   
+                    navmesh.SetDestination(PatrolPoint_1[startingvalue].transform.position);   // listenin içindeki 1. hedefi kendine 1. hedef olarak belirliyo
+
+                }
+
+               
+          }
+            yield return null;
     
-}
+        }
 }
 
 
     private void LateUpdate()
     {
-        DetectionRadius();
-        ShootRadius();
-       
+        if(PatrolCheck)
+         {
+            PatrolDo=StartCoroutine(PatrolTechnical()); // defining startcoroutine to patroldo
+         }
+         DetectionRadius();
+         ShootRadius();
+        
     }
     void ShootRadius() {
     
@@ -88,7 +124,7 @@ while(true && !PatrolCheck)
                     if (objects.gameObject.CompareTag("Player"))
                     {
                         Suspicion = true; //
-                         enemyanimator.SetBool("walk", false);
+                        
                           enemyanimator.SetBool("walk",true);
                           Target = objects.gameObject;
                           navmesh.SetDestination(Target.transform.position);
